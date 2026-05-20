@@ -1,5 +1,7 @@
 # Industrial RAG Assistant
 
+![banner](assets/banner.png)
+
 산업 문서(PDF)를 업로드하면 자연어 질문으로 검색·답변을 받을 수 있는 RAG 기반 AI 서비스입니다.
 
 ## Tech Stack
