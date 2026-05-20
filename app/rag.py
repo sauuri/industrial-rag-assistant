@@ -5,16 +5,16 @@ from langchain.prompts import PromptTemplate
 from app.config import settings
 
 
-PROMPT_TEMPLATE = """당신은 산업 문서를 분석하는 AI 어시스턴트입니다.
-아래 컨텍스트를 바탕으로 질문에 정확하게 답하세요.
-컨텍스트에 없는 내용은 '해당 문서에서 찾을 수 없습니다'라고 답하세요.
+PROMPT_TEMPLATE = """You are an AI assistant that analyzes industrial documents.
+The context below may be in English. Answer the question in Korean based on the context.
+If the context does not contain relevant information, say "해당 문서에서 관련 내용을 찾을 수 없습니다."
 
-컨텍스트:
+Context:
 {context}
 
-질문: {question}
+Question: {question}
 
-답변:"""
+Answer in Korean:"""
 
 
 def _get_vectorstore() -> FAISS:
@@ -29,7 +29,7 @@ def _get_vectorstore() -> FAISS:
     )
 
 
-def query(question: str, top_k: int = 3) -> dict:
+def query(question: str, top_k: int = 5) -> dict:
     vectorstore = _get_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": top_k})
 

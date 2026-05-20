@@ -27,6 +27,7 @@ def ingest() -> int:
         chunk_overlap=settings.chunk_overlap,
     )
     chunks = splitter.split_documents(docs)
+    chunks = [c for c in chunks if len(c.page_content.strip()) >= 100]
 
     embeddings = OpenAIEmbeddings(
         model=settings.embedding_model,

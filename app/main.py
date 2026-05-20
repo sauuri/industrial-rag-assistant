@@ -1,9 +1,20 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.schemas import QueryRequest, QueryResponse, IngestResponse
 from app.ingest import ingest
 import app.rag as rag
+import os
 
 app = FastAPI(title="Industrial RAG Assistant", version="0.1.0")
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.get("/")
+def root():
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 
 @app.get("/health")
