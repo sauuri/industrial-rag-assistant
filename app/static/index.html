@@ -5,157 +5,452 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Industrial RAG Assistant</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --border:  #2a2d3e;
+      --accent:  #6366f1;
+      --accent2: #818cf8;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --success: #22c55e;
+      --danger:  #ef4444;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f0f2f5;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      overflow: hidden;
     }
 
-    .container {
-      width: 100%;
-      max-width: 780px;
-      height: 90vh;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    /* ── Sidebar ─────────────────────────────────────── */
+    #sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px;
+      gap: 16px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .logo-text h1 { font-size: 13px; font-weight: 700; line-height: 1.2; }
+    .logo-text p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Upload area */
+    #upload-area {
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    #upload-area:hover, #upload-area.drag-over {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.06);
+    }
+
+    #upload-area p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    #upload-area strong { color: var(--accent2); }
+    #file-input { display: none; }
+
+    #upload-status {
+      font-size: 11px;
+      color: var(--success);
+      text-align: center;
+      min-height: 16px;
+    }
+
+    #upload-status.error { color: var(--danger); }
+
+    /* Document list */
+    #doc-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .doc-item:hover { border-color: var(--accent); }
+
+    .doc-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .doc-info { min-width: 0; }
+    .doc-name {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .doc-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .doc-empty {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* ── Main chat area ───────────────────────────────── */
+    #main {
+      flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    header {
-      padding: 18px 24px;
-      background: #1a1a2e;
-      color: #fff;
+    #topbar {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
     }
 
-    header h1 { font-size: 17px; font-weight: 600; }
-    header p  { font-size: 12px; color: #9da5b4; margin-top: 3px; }
+    #topbar h2 { font-size: 14px; font-weight: 600; }
+    #topbar p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
+    #stats-badge {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    /* Chat */
     #chat {
       flex: 1;
       overflow-y: auto;
       padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
     }
 
-    .msg {
-      display: flex;
-      flex-direction: column;
-      max-width: 80%;
-    }
-
-    .msg.user  { align-self: flex-end; align-items: flex-end; }
-    .msg.bot   { align-self: flex-start; align-items: flex-start; }
+    .msg { display: flex; flex-direction: column; max-width: 78%; }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.bot  { align-self: flex-start; align-items: flex-start; }
 
     .bubble {
       padding: 12px 16px;
-      border-radius: 16px;
+      border-radius: 14px;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.65;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
     .msg.user .bubble {
-      background: #1a1a2e;
+      background: var(--accent);
       color: #fff;
       border-bottom-right-radius: 4px;
     }
 
     .msg.bot .bubble {
-      background: #f0f2f5;
-      color: #1a1a2e;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
       border-bottom-left-radius: 4px;
     }
 
-    .sources {
-      font-size: 11px;
-      color: #888;
-      margin-top: 5px;
-      padding: 0 4px;
+    .msg-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
-    .sources span {
-      background: #e8eaf0;
+    .source-tag {
+      font-size: 11px;
+      padding: 2px 8px;
       border-radius: 4px;
-      padding: 2px 6px;
-      margin-right: 4px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--accent2);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .latency-tag {
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
     }
 
     .typing .bubble {
-      color: #888;
+      color: var(--muted);
       font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    footer {
-      padding: 16px 20px;
-      border-top: 1px solid #eee;
+    .dot-loader {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .dot-loader span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.2s infinite;
+    }
+    .dot-loader span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-loader span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    /* Footer input */
+    #footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
 
     #input {
       flex: 1;
       padding: 12px 16px;
-      border: 1.5px solid #ddd;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
       border-radius: 10px;
       font-size: 14px;
+      color: var(--text);
       outline: none;
       transition: border-color 0.2s;
     }
 
-    #input:focus { border-color: #1a1a2e; }
+    #input::placeholder { color: var(--muted); }
+    #input:focus { border-color: var(--accent); }
 
     #send {
       padding: 12px 22px;
-      background: #1a1a2e;
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 10px;
       font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       transition: opacity 0.2s;
+      flex-shrink: 0;
     }
 
-    #send:disabled { opacity: 0.4; cursor: not-allowed; }
+    #send:disabled { opacity: 0.35; cursor: not-allowed; }
     #send:hover:not(:disabled) { opacity: 0.85; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Industrial RAG Assistant</h1>
-      <p>산업 문서 기반 AI 질의응답 시스템</p>
-    </header>
 
-    <div id="chat">
-      <div class="msg bot">
-        <div class="bubble">안녕하세요. 업로드된 산업 문서에 대해 질문해주세요.</div>
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚙</div>
+      <div class="logo-text">
+        <h1>RAG Assistant</h1>
+        <p>Industrial Docs Q&amp;A</p>
       </div>
     </div>
 
-    <footer>
+    <span class="section-label">문서 업로드</span>
+
+    <div id="upload-area" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept=".pdf" />
+      <p><strong>PDF 클릭 또는 드롭</strong><br/>산업 문서를 업로드하면<br/>즉시 인덱싱됩니다</p>
+    </div>
+    <div id="upload-status"></div>
+
+    <span class="section-label">인덱싱된 문서 (<span id="doc-count">0</span>)</span>
+
+    <div id="doc-list">
+      <p class="doc-empty">업로드된 문서가 없습니다</p>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h2>질의응답</h2>
+        <p>산업 문서 기반 AI 답변 시스템</p>
+      </div>
+      <div id="stats-badge"></div>
+    </div>
+
+    <div id="chat">
+      <div class="msg bot">
+        <div class="bubble">안녕하세요. 좌측에서 PDF를 업로드하고 산업 문서에 대해 질문해주세요.</div>
+      </div>
+    </div>
+
+    <div id="footer">
       <input id="input" type="text" placeholder="질문을 입력하세요..." />
       <button id="send">전송</button>
-    </footer>
+    </div>
   </div>
 
   <script>
-    const chat  = document.getElementById("chat");
-    const input = document.getElementById("input");
-    const send  = document.getElementById("send");
+    const chat       = document.getElementById("chat");
+    const input      = document.getElementById("input");
+    const sendBtn    = document.getElementById("send");
+    const docList    = document.getElementById("doc-list");
+    const docCount   = document.getElementById("doc-count");
+    const uploadArea = document.getElementById("upload-area");
+    const fileInput  = document.getElementById("file-input");
+    const uploadStatus = document.getElementById("upload-status");
+    const statsBadge = document.getElementById("stats-badge");
 
-    function appendMsg(role, text, sources) {
-      const wrap = document.createElement("div");
+    // ── Document list ──────────────────────────────────
+    async function loadDocs() {
+      try {
+        const res  = await fetch("/documents");
+        const data = await res.json();
+        const docs = data.documents || [];
+        docCount.textContent = docs.length;
+
+        if (!docs.length) {
+          docList.innerHTML = '<p class="doc-empty">업로드된 문서가 없습니다</p>';
+          return;
+        }
+
+        docList.innerHTML = docs.map(d => `
+          <div class="doc-item">
+            <span class="doc-icon">📄</span>
+            <div class="doc-info">
+              <div class="doc-name" title="${d.filename}">${d.filename}</div>
+              <div class="doc-size">${d.size_kb} KB</div>
+            </div>
+          </div>
+        `).join("");
+      } catch {}
+    }
+
+    loadDocs();
+
+    // ── Upload ─────────────────────────────────────────
+    uploadArea.addEventListener("dragover", e => {
+      e.preventDefault();
+      uploadArea.classList.add("drag-over");
+    });
+    uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("drag-over"));
+    uploadArea.addEventListener("drop", e => {
+      e.preventDefault();
+      uploadArea.classList.remove("drag-over");
+      const file = e.dataTransfer.files[0];
+      if (file) uploadFile(file);
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+    });
+
+    async function uploadFile(file) {
+      if (!file.name.toLowerCase().endsWith(".pdf")) {
+        setStatus("PDF 파일만 업로드 가능합니다.", true);
+        return;
+      }
+
+      setStatus("업로드 중...");
+      uploadArea.style.pointerEvents = "none";
+
+      const form = new FormData();
+      form.append("file", file);
+
+      try {
+        const res  = await fetch("/upload", { method: "POST", body: form });
+        const data = await res.json();
+        if (res.ok) {
+          setStatus(`완료: ${data.filename} (${data.chunks_created} chunks)`);
+          await loadDocs();
+        } else {
+          setStatus(data.detail || "업로드 실패", true);
+        }
+      } catch {
+        setStatus("서버 연결 실패", true);
+      } finally {
+        uploadArea.style.pointerEvents = "";
+        fileInput.value = "";
+      }
+    }
+
+    function setStatus(msg, isError = false) {
+      uploadStatus.textContent = msg;
+      uploadStatus.className = isError ? "error" : "";
+      if (!isError) setTimeout(() => { uploadStatus.textContent = ""; }, 4000);
+    }
+
+    // ── Chat ───────────────────────────────────────────
+    function appendMsg(role, text, meta) {
+      const wrap   = document.createElement("div");
       wrap.className = `msg ${role}`;
 
       const bubble = document.createElement("div");
@@ -163,15 +458,32 @@
       bubble.textContent = text;
       wrap.appendChild(bubble);
 
-      if (sources && sources.length > 0) {
-        const src = document.createElement("div");
-        src.className = "sources";
-        sources.forEach(s => {
+      if (meta && role === "bot") {
+        const metaDiv = document.createElement("div");
+        metaDiv.className = "msg-meta";
+
+        (meta.sources || []).forEach(s => {
           const tag = document.createElement("span");
-          tag.textContent = s.split("/").pop();
-          src.appendChild(tag);
+          tag.className = "source-tag";
+          tag.textContent = s.page ? `${s.file} p.${s.page}` : s.file;
+          tag.title = `similarity: ${s.score}`;
+          metaDiv.appendChild(tag);
         });
-        wrap.appendChild(src);
+
+        if (meta.latency_ms != null) {
+          const lt = document.createElement("span");
+          lt.className = "latency-tag";
+          lt.textContent = `${meta.latency_ms}ms · ${meta.retrieved_chunks} chunks`;
+          metaDiv.appendChild(lt);
+
+          // Update top badge
+          statsBadge.innerHTML = `
+            <span class="badge">${meta.latency_ms}ms</span>
+            <span class="badge">${meta.retrieved_chunks} chunks</span>
+          `;
+        }
+
+        wrap.appendChild(metaDiv);
       }
 
       chat.appendChild(wrap);
@@ -179,22 +491,28 @@
       return bubble;
     }
 
+    function appendTyping() {
+      const wrap = document.createElement("div");
+      wrap.className = "msg bot typing";
+      wrap.innerHTML = '<div class="bubble"><div class="dot-loader"><span></span><span></span><span></span></div></div>';
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+      return wrap;
+    }
+
     async function ask() {
       const q = input.value.trim();
       if (!q) return;
 
       input.value = "";
-      send.disabled = true;
+      sendBtn.disabled = true;
+      input.disabled = true;
       appendMsg("user", q);
 
-      const typing = document.createElement("div");
-      typing.className = "msg bot typing";
-      typing.innerHTML = '<div class="bubble">답변 생성 중...</div>';
-      chat.appendChild(typing);
-      chat.scrollTop = chat.scrollHeight;
+      const typing = appendTyping();
 
       try {
-        const res = await fetch("/query", {
+        const res  = await fetch("/query", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: q, top_k: 5 }),
@@ -203,7 +521,11 @@
         chat.removeChild(typing);
 
         if (res.ok) {
-          appendMsg("bot", data.answer, data.sources);
+          appendMsg("bot", data.answer, {
+            sources: data.sources,
+            latency_ms: data.latency_ms,
+            retrieved_chunks: data.retrieved_chunks,
+          });
         } else {
           appendMsg("bot", `오류: ${data.detail}`);
         }
@@ -212,12 +534,13 @@
         appendMsg("bot", "서버 연결에 실패했습니다.");
       }
 
-      send.disabled = false;
+      sendBtn.disabled = false;
+      input.disabled = false;
       input.focus();
     }
 
-    send.addEventListener("click", ask);
-    input.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
+    sendBtn.addEventListener("click", ask);
+    input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) ask(); });
   </script>
 </body>
 </html>
